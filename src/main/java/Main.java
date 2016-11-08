@@ -11,6 +11,7 @@ import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Record;
+import org.neo4j.driver.v1.RetryLogic;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
@@ -41,9 +42,9 @@ public class Main
 
             try ( Session session = driver.session( AccessMode.READ ) )
             {
-                Transaction transaction = session.beginTransaction(bookmark);
-                StatementResult run = transaction.run(
-                        "MATCH (n:Picture) RETURN n.uri AS uri, SIZE((n)<-[:FOR]-()) AS votes" );
+                Transaction transaction = session.beginTransaction( bookmark );
+                StatementResult run = transaction
+                        .run( "MATCH (n:Picture) RETURN n.uri AS uri, SIZE((n)<-[:FOR]-()) AS votes ORDER BY votes desc" );
                 while ( run.hasNext() )
                 {
                     Record next = run.next();
@@ -52,13 +53,14 @@ public class Main
                 transaction.success();
             }
 
-            Map<String, Object> params = new HashMap<>(  );
+
+            Map<String,Object> params = new HashMap<>();
             params.put( "photos", attributes );
 
             return new ModelAndView( params, "index.ftl" );
         }, new FreeMarkerEngine() );
 
-        post("/", (req, res) ->
+        post( "/", ( req, res ) ->
         {
             String currentUser = "Alistair";
 
@@ -68,13 +70,12 @@ public class Main
             String bookmark;
             try ( Session session = driver.session( AccessMode.WRITE ) )
             {
-                try(Transaction transaction = session.beginTransaction())
+                try ( Transaction transaction = session.beginTransaction() )
                 {
 
-                    transaction
-                            .run( "MATCH (n:Picture {uri: {id}}), (person:Person {name: {name}}) " +
-                                            "CREATE (person)-[:CAST]->(vote:Vote)-[:FOR]->(n)",
-                                    parameters( "id", myVote, "name", currentUser ) ).consume();
+                    transaction.run( "MATCH (n:Picture {uri: {id}}), (person:Person {name: {name}}) " +
+                                    "CREATE (person)-[:CAST]->(vote:Vote)-[:FOR]->(n)",
+                            parameters( "id", myVote, "name", currentUser ) ).consume();
                     transaction.success();
                 }
 
@@ -86,7 +87,51 @@ public class Main
 
             res.redirect( "/?bookmark=" + bookmark );
             return "";
-        });
+        } );
+
+        get( "/eventual", ( req, res ) ->
+        {
+            List<Object> props = driver.transact( RetryLogic.TRY_UP_TO_3_TIMES_WITH_5_SECOND_PAUSE, AccessMode.READ, ( transaction ) ->
+            {
+                List<Object> attributes = new ArrayList<>(  );
+                StatementResult run = transaction
+                        .run( "MATCH (n:Picture) RETURN n.uri AS uri, SIZE((n)<-[:FOR]-()) AS votes ORDER BY votes desc" );
+                while ( run.hasNext() )
+                {
+                    Record next = run.next();
+                    attributes.add( next.asMap() );
+                }
+                transaction.success();
+                return attributes;
+            } );
+
+
+            Map<String,Object> params = new HashMap<>();
+            params.put( "photos", props );
+
+            return new ModelAndView( params, "eventual.ftl" );
+        }, new FreeMarkerEngine() );
+
+        post( "/eventual", ( req, res ) ->
+        {
+            String currentUser = "Alistair";
+
+            String myVote = req.queryParams( "photo" );
+
+            driver.transact( RetryLogic.TRY_UP_TO_3_TIMES_WITH_5_SECOND_PAUSE, AccessMode.WRITE, ( transaction ) ->
+            {
+                transaction
+                        .run( "MATCH (n:Picture {uri: {id}}), (person:Person {name: {name}}) " +
+                                        "CREATE (person)-[:CAST]->(vote:Vote)-[:FOR]->(n)",
+                                parameters( "id", myVote, "name", currentUser ) ).consume();
+
+                transaction.success();
+                return null;
+            } );
+
+            res.redirect( "/eventual");
+            return "";
+        } );
 
     }
 

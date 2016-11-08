@@ -8,6 +8,8 @@
 
 <#include "nav.ftl">
 
+Eventual consistency!
+
 <div class="jumbotron text-center">
     <div class="container">
         <a href="/" class="lang-logo">
@@ -21,7 +23,7 @@
     <ul>
     <#list photos as photo>
         <li>
-            <form action="/" method="POST" name="votingForm">
+            <form action="/eventual" method="POST" name="votingForm">
                 <img src="${photo.uri}" width="400px"/>
                 <Strong>${photo.votes}</Strong>
                 <label for="vote">Vote</label>
