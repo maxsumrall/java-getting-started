@@ -23,6 +23,11 @@
       <version>9.4-1201-jdbc4</version>
     </dependency>
     <dependency>
+      <groupId>org.neo4j.driver</groupId>
+      <artifactId>neo4j-java-driver</artifactId>
+      <version>1.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
       <groupId>com.heroku.sdk</groupId>
       <artifactId>heroku-jdbc</artifactId>
       <version>0.1.1</version>
@@ -68,4 +73,12 @@
       </plugin>
     </plugins>
   </build>
+  <repositories>
+    <!--other repositories if any-->
+    <repository>
+      <id>project.local</id>
+      <name>project</name>
+      <url>file:${project.basedir}/repo</url>
+    </repository>
+  </repositories>
 </project>

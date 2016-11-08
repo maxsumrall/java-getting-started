@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata modelVersion="1.1.0">
+  <groupId>org.neo4j.driver</groupId>
+  <artifactId>neo4j-java-driver-parent</artifactId>
+  <version>1.1-SNAPSHOT</version>
+  <versioning>
+    <snapshot>
+      <timestamp>20161108.103926</timestamp>
+      <buildNumber>1</buildNumber>
+    </snapshot>
+    <lastUpdated>20161108103926</lastUpdated>
+    <snapshotVersions>
+      <snapshotVersion>
+        <extension>pom</extension>
+        <value>1.1-20161108.103926-1</value>
+        <updated>20161108103926</updated>
+      </snapshotVersion>
+    </snapshotVersions>
+  </versioning>
+</metadata>
