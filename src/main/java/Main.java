@@ -32,15 +32,7 @@ public class Main
         port( Integer.valueOf( System.getenv( "PORT" ) ) );
         staticFileLocation( "/public" );
 
-        get( "/", ( request, response ) ->
-        {
-            Map<String,Object> attributes = new HashMap<>();
-            attributes.put( "message", "Hello World!" );
-
-            return new ModelAndView( attributes, "index.ftl" );
-        }, new FreeMarkerEngine() );
-
-        get( "/photos", ( req, res ) ->
+        get( "/", ( req, res ) ->
         {
             String bookmark = req.queryParams( "bookmark" );
             System.out.println( "bookmark = " + bookmark );
@@ -63,10 +55,10 @@ public class Main
             Map<String, Object> params = new HashMap<>(  );
             params.put( "photos", attributes );
 
-            return new ModelAndView( params, "photos.ftl" );
+            return new ModelAndView( params, "index.ftl" );
         }, new FreeMarkerEngine() );
 
-        post("/photos", (req, res) ->
+        post("/", (req, res) ->
         {
             String currentUser = "Alistair";
 
@@ -92,7 +84,7 @@ public class Main
             System.out.println( "bookmark = " + bookmark );
 
 
-            res.redirect( "/photos?bookmark=" + bookmark );
+            res.redirect( "/?bookmark=" + bookmark );
             return "";
         });
 
