@@ -53,7 +53,6 @@ public class Main
                 transaction.success();
             }
 
-
             Map<String,Object> params = new HashMap<>();
             params.put( "photos", attributes );
 
@@ -81,9 +80,7 @@ public class Main
 
                 bookmark = session.lastBookmark();
             }
-
             System.out.println( "bookmark = " + bookmark );
-
 
             res.redirect( "/?bookmark=" + bookmark );
             return "";
