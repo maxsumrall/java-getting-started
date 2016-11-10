@@ -1,0 +1,11 @@
+# -*- mode: shell-script -*-
+
+if [ -f ./devenv.local ]; then
+    . ./devenv.local
+    export NEO4J_ADDRESS
+    export BOLT_PORT
+    export NEO4J_PASSWORD
+    export NEO4J_USERNAME
+else
+    echo "Couldn't find ./devenv.local."
+fi

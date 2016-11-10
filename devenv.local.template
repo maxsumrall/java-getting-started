@@ -1,0 +1,4 @@
+NEO4J_ADDRESS=<A single address of a currently running server in the cluster, as the driver hint>
+BOLT_PORT=<the port that you should use to have the driver connect at>
+NEO4J_PASSWORD=<used for auth credentials to neo4j.>
+NEO4J_USERNAME=<used for auth credentials to neo4j>

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.neo4j.driver.v1.AccessMode;
+import org.neo4j.driver.v1.AuthToken;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
@@ -24,9 +25,31 @@ import static spark.Spark.staticFileLocation;
 
 public class Main
 {
-    public static Driver driver = GraphDatabase
-            .driver( "bolt+routing://ec2-54-170-252-11.eu-west-1.compute.amazonaws" + ".com:26000",
-                    AuthTokens.basic( "neo4j", "max" ) );
+    private static class Credentials
+    {
+        String address;
+        String port;
+        String password;
+        String username;
+
+        private Credentials()
+        {
+            address = System.getenv( "NEO4J_ADDRESS" );
+            port = System.getenv( "BOLT_PORT" );
+            password = System.getenv( "NEO4J_PASSWORD" );
+            username = System.getenv( "NEO4J_USERNAME" );
+        }
+        static Credentials getCredentials()
+        {
+            return new Credentials();
+        }
+    }
+
+    private static final Credentials credentials = Credentials.getCredentials();
+
+    private static final AuthToken authToken = AuthTokens.basic( credentials.username, credentials.password );
+    private static final Driver driver =
+            GraphDatabase.driver( "bolt+routing://" + credentials.address + ":" + credentials.port, authToken );
 
     public static void main( String[] args )
     {
@@ -88,20 +111,20 @@ public class Main
 
         get( "/eventual", ( req, res ) ->
         {
-            List<Object> props = driver.transact( RetryLogic.TRY_UP_TO_3_TIMES_WITH_5_SECOND_PAUSE, AccessMode.READ, ( transaction ) ->
-            {
-                List<Object> attributes = new ArrayList<>(  );
-                StatementResult run = transaction
-                        .run( "MATCH (n:Picture) RETURN n.uri AS uri, SIZE((n)<-[:FOR]-()) AS votes ORDER BY votes desc" );
-                while ( run.hasNext() )
-                {
-                    Record next = run.next();
-                    attributes.add( next.asMap() );
-                }
-                transaction.success();
-                return attributes;
-            } );
-
+            List<Object> props = driver.transact( RetryLogic.TRY_UP_TO_3_TIMES_WITH_5_SECOND_PAUSE, AccessMode.READ,
+                    ( transaction ) ->
+                    {
+                        List<Object> attributes = new ArrayList<>();
+                        StatementResult run = transaction
+                                .run( "MATCH (n:Picture) RETURN n.uri AS uri, SIZE((n)<-[:FOR]-()) AS votes ORDER BY votes desc" );
+                        while ( run.hasNext() )
+                        {
+                            Record next = run.next();
+                            attributes.add( next.asMap() );
+                        }
+                        transaction.success();
+                        return attributes;
+                    } );
 
             Map<String,Object> params = new HashMap<>();
             params.put( "photos", props );
@@ -117,16 +140,15 @@ public class Main
 
             driver.transact( RetryLogic.TRY_UP_TO_3_TIMES_WITH_5_SECOND_PAUSE, AccessMode.WRITE, ( transaction ) ->
             {
-                transaction
-                        .run( "MATCH (n:Picture {uri: {id}}), (person:Person {name: {name}}) " +
-                                        "CREATE (person)-[:CAST]->(vote:Vote)-[:FOR]->(n)",
-                                parameters( "id", myVote, "name", currentUser ) ).consume();
+                transaction.run( "MATCH (n:Picture {uri: {id}}), (person:Person {name: {name}}) " +
+                                "CREATE (person)-[:CAST]->(vote:Vote)-[:FOR]->(n)",
+                        parameters( "id", myVote, "name", currentUser ) ).consume();
 
                 transaction.success();
                 return null;
             } );
 
-            res.redirect( "/eventual");
+            res.redirect( "/eventual" );
             return "";
         } );
 
